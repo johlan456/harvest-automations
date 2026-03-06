@@ -1,14 +1,17 @@
-"""Check for running timers that have been active too long."""
+"""Check for running timers and send a Telegram notification if any exceed the threshold."""
 
+import os
 import sys
-from datetime import datetime, timedelta
 
 from .client import get_client
+from .telegram import send_message
 
-MAX_HOURS = 4
+DEFAULT_THRESHOLD_HOURS = 1
 
 
 def main():
+    threshold = float(os.environ.get("RUNAWAY_THRESHOLD_HOURS", DEFAULT_THRESHOLD_HOURS))
+
     client = get_client()
     resp = client.get("/time_entries", params={"is_running": "true"})
     resp.raise_for_status()
@@ -23,20 +26,18 @@ def main():
         hours = entry["hours"]
         project = entry["project"]["name"]
         task = entry["task"]["name"]
-        started = entry["timer_started_at"]
 
-        if hours >= MAX_HOURS:
-            alerts.append(
-                f"  ALERT: {project} / {task} — {hours:.1f}h (started {started})"
-            )
-        else:
-            print(f"  Running: {project} / {task} — {hours:.1f}h")
+        if hours >= threshold:
+            alerts.append(f"{project} / {task} — {hours:.1f}h")
 
     if alerts:
-        print(f"Timers running over {MAX_HOURS}h:")
-        for alert in alerts:
-            print(alert)
+        msg = "Timer still running:\n" + "\n".join(alerts)
+        print(msg)
+        send_message(msg)
         sys.exit(1)
+    else:
+        for entry in entries:
+            print(f"  Running: {entry['project']['name']} / {entry['task']['name']} — {entry['hours']:.1f}h (under {threshold}h)")
 
 
 if __name__ == "__main__":
