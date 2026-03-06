@@ -5,6 +5,7 @@ Personal automation tools for the [Harvest](https://www.getharvest.com/) time tr
 ## Tools
 
 - **runaway-timer** — Sends a Telegram notification when a running timer exceeds a configurable threshold (default: 1h). Run on a schedule to catch forgotten timers.
+- **weekly-summary** — Sends a weekly summary of time entries (Fri–Thu) via Telegram, grouped by project and task. Run on Thursdays at 16:00 to prepare for Friday standup.
 - **timesheet-reminder** — *(coming soon)* Monday morning reminder to submit your timesheet.
 - **monthly-export** — *(coming soon)* Export time entries for a specific client/project/task.
 
@@ -22,9 +23,18 @@ uv sync
 
 ```
 uv run runaway-timer
+uv run weekly-summary
 ```
 
-To run on a schedule, set up a cron job or systemd timer.
+### Cron examples
+
+```cron
+# Check for runaway timers every 15 minutes during work hours
+*/15 9-17 * * 1-5 cd /home/johlan/dev/agileworks/harvest && uv run runaway-timer
+
+# Weekly summary every Thursday at 16:00
+0 16 * * 4 cd /home/johlan/dev/agileworks/harvest && uv run weekly-summary
+```
 
 ## Configuration
 
