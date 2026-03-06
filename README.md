@@ -14,9 +14,9 @@ Personal automation tools for the [Harvest](https://www.getharvest.com/) time tr
 2. Set up a [Telegram bot](https://t.me/BotFather) for notifications
 3. Copy `.env.example` to `.env` and fill in your credentials
 4. Install dependencies:
-   ```
-   uv sync
-   ```
+```
+uv sync
+```
 
 ## Usage
 
