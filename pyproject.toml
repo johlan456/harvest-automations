@@ -1,0 +1,18 @@
+[project]
+name = "harvest-tools"
+version = "0.1.0"
+description = "Personal Harvest API automation tools"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx",
+    "python-dotenv",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+runaway-timer = "harvest_tools.runaway_timer:main"
+timesheet-reminder = "harvest_tools.timesheet_reminder:main"
+monthly-export = "harvest_tools.monthly_export:main"
