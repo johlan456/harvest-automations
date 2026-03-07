@@ -1,6 +1,5 @@
 """Weekly summary of Harvest time entries, delivered via Telegram."""
 
-import sys
 from collections import defaultdict
 from datetime import date, timedelta
 

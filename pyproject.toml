@@ -12,6 +12,11 @@ dependencies = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+dev = [
+    "ruff>=0.15.5",
+]
+
 [project.scripts]
 runaway-timer = "harvest_tools.runaway_timer:main"
 timesheet-reminder = "harvest_tools.timesheet_reminder:main"
