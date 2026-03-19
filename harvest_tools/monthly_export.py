@@ -1,12 +1,14 @@
-"""Export Tracks 4 Africa time entries from Harvest to XLSX for the current month."""
+"""Export HEV004 time entries from Harvest to XLSX and email to client monthly."""
 
+import os
 from datetime import date, datetime, timedelta, timezone
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from .client import get_client
-from .telegram import send_document, send_message
+from .email import send_email
+from .telegram import send_message
 
 PROJECT_ID = 47325879  # HEV004 — System Admin Services
 TASK_ID = 26287739  # Tracks 4 Africa
@@ -16,7 +18,6 @@ CALENDAR_NAME = "T4A"
 def _month_range(ref_date: date) -> tuple[date, date]:
     """Return first and last day of the month containing ref_date."""
     first = ref_date.replace(day=1)
-    # Last day: go to next month's 1st, subtract a day
     if first.month == 12:
         last = first.replace(year=first.year + 1, month=1, day=1) - timedelta(days=1)
     else:
@@ -24,23 +25,22 @@ def _month_range(ref_date: date) -> tuple[date, date]:
     return first, last
 
 
-def _fetch_entries(start: date, end: date) -> list[dict]:
-    """Fetch all T4A time entries in the date range, handling pagination."""
+def _fetch_entries(start: date, end: date, task_id: int | None = None) -> list[dict]:
+    """Fetch time entries for HEV004 in the date range, optionally filtered by task."""
     client = get_client()
     entries = []
     page = 1
     while True:
-        resp = client.get(
-            "/time_entries",
-            params={
-                "project_id": PROJECT_ID,
-                "task_id": TASK_ID,
-                "from": str(start),
-                "to": str(end),
-                "per_page": 100,
-                "page": page,
-            },
-        )
+        params = {
+            "project_id": PROJECT_ID,
+            "from": str(start),
+            "to": str(end),
+            "per_page": 100,
+            "page": page,
+        }
+        if task_id is not None:
+            params["task_id"] = task_id
+        resp = client.get("/time_entries", params=params)
         resp.raise_for_status()
         data = resp.json()
         entries.extend(data["time_entries"])
@@ -77,7 +77,7 @@ def _fmt_dt(dt: datetime | None) -> str | None:
     return dt.strftime("%d/%m/%Y %H:%M")
 
 
-def _build_workbook(entries: list[dict]) -> Workbook:
+def _build_t4a_workbook(entries: list[dict]) -> Workbook:
     """Build an XLSX workbook matching the T4A report template."""
     wb = Workbook()
     ws = wb.active
@@ -108,11 +108,10 @@ def _build_workbook(entries: list[dict]) -> Workbook:
             _fmt_dt(start),
             _fmt_dt(end),
             _hours_to_time_str(hours),
-            "",  # Event Notes — left empty
+            "",
         ])
         total_seconds += round(hours * 3600)
 
-    # Total row in the Duration column
     total_row = ws.max_row + 1
     total_h, remainder = divmod(total_seconds, 3600)
     total_m = remainder // 60
@@ -121,27 +120,92 @@ def _build_workbook(entries: list[dict]) -> Workbook:
     return wb
 
 
+def _build_full_workbook(entries: list[dict]) -> Workbook:
+    """Build an XLSX workbook with all HEV004 entries."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Sheet1"
+
+    headers = [
+        "Date",
+        "Task",
+        "Description",
+        "Start Time",
+        "End Time",
+        "Duration",
+    ]
+    ws.append(headers)
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+
+    total_seconds = 0
+    for e in entries:
+        hours = e["hours"]
+        task_name = e.get("task", {}).get("name", "")
+        notes = (e.get("notes") or "").strip()
+        start = _parse_start_time(e)
+        end = start + timedelta(hours=hours) if start else None
+
+        ws.append([
+            e["spent_date"],
+            task_name,
+            notes,
+            _fmt_dt(start),
+            _fmt_dt(end),
+            _hours_to_time_str(hours),
+        ])
+        total_seconds += round(hours * 3600)
+
+    total_row = ws.max_row + 1
+    total_h, remainder = divmod(total_seconds, 3600)
+    total_m = remainder // 60
+    ws.cell(row=total_row, column=6, value=f"{total_h}:{total_m:02d}")
+
+    return wb
+
+
 def main():
     today = date.today()
     start, end = _month_range(today)
-    print(f"Fetching T4A entries for {start.strftime('%B %Y')}...")
+    month_label = start.strftime("%B %Y")
+    client_email = os.environ["CLIENT_EMAIL_RECIPIENT"]
 
-    entries = _fetch_entries(start, end)
+    print(f"Fetching HEV004 entries for {month_label}...")
 
-    if not entries:
-        msg = f"T4A Export — {start.strftime('%B %Y')}: No Tracks 4 Africa entries found for this month."
+    # Full project export
+    all_entries = _fetch_entries(start, end)
+    if all_entries:
+        full_filename = f"hev004-{today.strftime('%Y-%m')}.xlsx"
+        _build_full_workbook(all_entries).save(full_filename)
+        print(f"Exported {len(all_entries)} entries to {full_filename}")
+
+        send_email(
+            subject=f"HEV004 Monthly Report — {month_label}",
+            body=f"Please find attached the full HEV004 time report for {month_label}.",
+            recipient=client_email,
+            attachments=[full_filename],
+        )
+        print(f"Full report emailed to client.")
+
+    # T4A-specific export
+    t4a_entries = _fetch_entries(start, end, task_id=TASK_ID)
+    if not t4a_entries:
+        msg = f"T4A Export — {month_label}: No Tracks 4 Africa entries found for this month."
         print(msg)
         send_message(msg)
         return
 
-    wb = _build_workbook(entries)
-    filename = f"tracks4africa-{today.strftime('%Y-%m')}.xlsx"
-    wb.save(filename)
-    print(f"Exported {len(entries)} entries to {filename}")
+    t4a_filename = f"tracks4africa-{today.strftime('%Y-%m')}.xlsx"
+    _build_t4a_workbook(t4a_entries).save(t4a_filename)
+    print(f"Exported {len(t4a_entries)} T4A entries to {t4a_filename}")
 
-    caption = f"T4A Export — {start.strftime('%B %Y')}"
-    send_document(filename, caption=caption)
-    print("Sent to Telegram.")
+    send_email(
+        subject=f"Tracks 4 Africa Report — {month_label}",
+        body=f"Please find attached the Tracks 4 Africa time report for {month_label}.",
+        recipient=client_email,
+        attachments=[t4a_filename],
+    )
+    print(f"T4A report emailed to client.")
 
 
 if __name__ == "__main__":
