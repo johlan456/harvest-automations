@@ -5,14 +5,15 @@ Personal automation tools for the [Harvest](https://www.getharvest.com/) time tr
 ## Tools
 
 - **runaway-timer** — Sends a Telegram notification when a running timer exceeds a configurable threshold (default: 1h). Run on a schedule to catch forgotten timers.
-- **weekly-summary** — Sends a weekly summary of time entries (Fri–Thu) via Telegram, grouped by project and task. Run on Thursdays at 16:00 to prepare for Friday standup.
+- **weekly-summary** — Emails a weekly summary of time entries (Fri–Thu) grouped by project and task, with a Telegram reminder to check your inbox. Run on Thursdays at 16:00 to prepare for Friday standup.
 - **monthly-export** — Exports Tracks 4 Africa (T4A) time entries from the HEV004 project to an XLSX report for the current month and sends it via Telegram.
 
 ## Setup
 
 1. Get a [Harvest Personal Access Token](https://id.getharvest.com/developers)
 2. Set up a [Telegram bot](https://t.me/BotFather) for notifications
-3. Copy `.env.example` to `.env` and fill in your credentials
+3. Create a [Gmail app password](https://myaccount.google.com/apppasswords) (requires 2FA) for email delivery
+4. Copy `.env.example` to `.env` and fill in your credentials
 4. Install dependencies:
 ```
 uv sync

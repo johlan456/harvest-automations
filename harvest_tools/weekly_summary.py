@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import date, timedelta
 
 from .client import get_client
+from .email import send_email
 from .telegram import send_message
 
 DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -110,8 +111,13 @@ def main():
 
     summary = _format_summary(entries, start, end)
     print(summary)
-    send_message(summary)
-    print("\nSent to Telegram.")
+
+    subject = f"Weekly Summary (Fri {start.strftime('%-d %b')} \u2013 Thu {end.strftime('%-d %b')})"
+    send_email(subject, summary)
+    print("\nSent via email.")
+
+    send_message(f"{subject} has been emailed.")
+    print("Telegram reminder sent.")
 
 
 if __name__ == "__main__":
