@@ -77,6 +77,13 @@ def _fmt_dt(dt: datetime | None) -> str | None:
     return dt.strftime("%d/%m/%Y %H:%M")
 
 
+def _fmt_time(dt: datetime | None) -> str | None:
+    """Format a datetime as 'HH:MM', or None."""
+    if dt is None:
+        return None
+    return dt.strftime("%H:%M")
+
+
 def _build_t4a_workbook(entries: list[dict]) -> Workbook:
     """Build an XLSX workbook matching the T4A report template."""
     wb = Workbook()
@@ -150,8 +157,8 @@ def _build_full_workbook(entries: list[dict]) -> Workbook:
             e["spent_date"],
             task_name,
             notes,
-            _fmt_dt(start),
-            _fmt_dt(end),
+            _fmt_time(start),
+            _fmt_time(end),
             _hours_to_time_str(hours),
         ])
         total_seconds += round(hours * 3600)
