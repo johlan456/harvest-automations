@@ -6,7 +6,7 @@ Personal automation tools for the [Harvest](https://www.getharvest.com/) time tr
 
 - **runaway-timer** — Sends a Telegram notification when a running timer exceeds a configurable threshold (default: 1h). Run on a schedule to catch forgotten timers.
 - **weekly-summary** — Sends a weekly summary of time entries (Fri–Thu) via Telegram, grouped by project and task. Run on Thursdays at 16:00 to prepare for Friday standup.
-- **monthly-export** — Exports Tracks 4 Africa (T4A) time entries from the HEV004 project to an XLSX report for the current month.
+- **monthly-export** — Exports Tracks 4 Africa (T4A) time entries from the HEV004 project to an XLSX report for the current month and sends it via Telegram.
 
 ## Setup
 
