@@ -6,6 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from .client import get_client
+from .telegram import send_document
 
 PROJECT_ID = 47325879  # HEV004 — System Admin Services
 TASK_ID = 26287739  # Tracks 4 Africa
@@ -124,6 +125,10 @@ def main():
     filename = f"tracks4africa-{today.strftime('%Y-%m')}.xlsx"
     wb.save(filename)
     print(f"Exported {len(entries)} entries to {filename}")
+
+    caption = f"T4A Export — {start.strftime('%B %Y')}"
+    send_document(filename, caption=caption)
+    print("Sent to Telegram.")
 
 
 if __name__ == "__main__":
