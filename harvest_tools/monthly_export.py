@@ -185,7 +185,7 @@ def main():
             recipient=client_email,
             attachments=[full_filename],
         )
-        print(f"Full report emailed to client.")
+        print("Full report emailed to client.")
 
     # T4A-specific export
     t4a_entries = _fetch_entries(start, end, task_id=TASK_ID)
@@ -205,7 +205,7 @@ def main():
         recipient=client_email,
         attachments=[t4a_filename],
     )
-    print(f"T4A report emailed to client.")
+    print("T4A report emailed to client.")
 
 
 if __name__ == "__main__":
