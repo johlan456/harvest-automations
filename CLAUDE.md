@@ -12,4 +12,5 @@ Python tools for automating personal Harvest time tracking tasks. Uses `uv` for 
 - `harvest_tools/telegram.py` — shared Telegram notification helper
 - `harvest_tools/runaway_timer.py` — alerts when a timer has been running too long
 - `harvest_tools/timesheet_reminder.py` — stub: remind to submit timesheets
-- `harvest_tools/monthly_export.py` — stub: export entries for a client/project
+- `harvest_tools/monthly_export.py` — exports T4A (Tracks 4 Africa) entries from HEV004 project to XLSX
+- `harvest_tools/weekly_summary.py` — weekly Fri–Thu time summary sent via Telegram

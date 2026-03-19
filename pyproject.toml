@@ -5,6 +5,7 @@ description = "Personal Harvest API automation tools"
 requires-python = ">=3.12"
 dependencies = [
     "httpx",
+    "openpyxl>=3.1.5",
     "python-dotenv",
 ]
 
