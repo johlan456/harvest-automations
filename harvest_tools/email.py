@@ -8,7 +8,7 @@ SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
 
 
-def send_email(subject: str, body: str) -> None:
+def send_email(subject: str, body: str, html: str | None = None) -> None:
     user = os.environ["SMTP_USER"]
     password = os.environ["SMTP_APP_PASSWORD"]
     recipient = os.environ["EMAIL_RECIPIENT"]
@@ -18,6 +18,8 @@ def send_email(subject: str, body: str) -> None:
     msg["From"] = user
     msg["To"] = recipient
     msg.set_content(body)
+    if html:
+        msg.add_alternative(html, subtype="html")
 
     with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
         server.starttls()

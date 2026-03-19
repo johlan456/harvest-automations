@@ -1,6 +1,6 @@
 """Export Tracks 4 Africa time entries from Harvest to XLSX for the current month."""
 
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -57,13 +57,24 @@ def _hours_to_time_str(hours: float) -> str:
     return f"{h}:{m:02d}"
 
 
-def _format_datetime(spent_date: str, time_str: str | None) -> str | None:
-    """Format a date + optional time into 'DD/MM/YYYY HH:MM', or None."""
-    if not time_str:
+def _parse_start_time(entry: dict) -> datetime | None:
+    """Get start time from started_time (timer) or created_at (fallback)."""
+    spent = date.fromisoformat(entry["spent_date"])
+    if entry.get("started_time"):
+        t = datetime.strptime(entry["started_time"], "%I:%M%p").time()
+        return datetime.combine(spent, t)
+    if entry.get("created_at"):
+        sast = timezone(timedelta(hours=2))
+        utc_dt = datetime.fromisoformat(entry["created_at"].replace("Z", "+00:00"))
+        return utc_dt.astimezone(sast).replace(tzinfo=None)
+    return None
+
+
+def _fmt_dt(dt: datetime | None) -> str | None:
+    """Format a datetime as 'DD/MM/YYYY HH:MM', or None."""
+    if dt is None:
         return None
-    d = date.fromisoformat(spent_date)
-    t = datetime.strptime(time_str, "%I:%M%p").time()
-    return f"{d.strftime('%d/%m/%Y')} {t.strftime('%H:%M')}"
+    return dt.strftime("%d/%m/%Y %H:%M")
 
 
 def _build_workbook(entries: list[dict]) -> Workbook:
@@ -88,14 +99,14 @@ def _build_workbook(entries: list[dict]) -> Workbook:
     for e in entries:
         hours = e["hours"]
         notes = (e.get("notes") or "").strip()
-        start_dt = _format_datetime(e["spent_date"], e.get("started_time"))
-        end_dt = _format_datetime(e["spent_date"], e.get("ended_time"))
+        start = _parse_start_time(e)
+        end = start + timedelta(hours=hours) if start else None
 
         ws.append([
             CALENDAR_NAME,
             notes,
-            start_dt,
-            end_dt,
+            _fmt_dt(start),
+            _fmt_dt(end),
             _hours_to_time_str(hours),
             "",  # Event Notes — left empty
         ])

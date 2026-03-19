@@ -1,13 +1,15 @@
-"""Weekly summary of Harvest time entries, delivered via Telegram."""
+"""Weekly summary of Harvest time entries, delivered via email."""
 
 from collections import defaultdict
 from datetime import date, timedelta
+from html import escape
 
 from .client import get_client
 from .email import send_email
 from .telegram import send_message
 
 DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+DAY_ORDER = ["Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu"]
 
 
 def _get_date_range() -> tuple[date, date]:
@@ -39,13 +41,11 @@ def _fetch_entries(start: date, end: date) -> list[dict]:
     return entries
 
 
-def _format_summary(entries: list[dict], start: date, end: date) -> str:
-    """Group entries by project → task → day and format as a text summary."""
-    # Structure: {project: {task: {day_str: [(notes, hours)]}}}
+def _group_entries(entries: list[dict]) -> dict:
+    """Group entries into {project: {task: {day: [(notes, hours)]}}}."""
     projects: dict[str, dict[str, dict[str, list[tuple[str, float]]]]] = defaultdict(
         lambda: defaultdict(lambda: defaultdict(list))
     )
-
     for e in entries:
         project = e["project"]["name"]
         task = e["task"]["name"]
@@ -53,13 +53,16 @@ def _format_summary(entries: list[dict], start: date, end: date) -> str:
         day_label = DAY_ABBR[entry_date.weekday()]
         notes = (e.get("notes") or "").strip()
         projects[project][task][day_label].append((notes, e["hours"]))
+    return projects
 
+
+def _format_plain(projects: dict, start: date, end: date) -> str:
+    """Plain text summary for the email fallback."""
     start_fmt = start.strftime("%-d %b")
     end_fmt = end.strftime("%-d %b")
     lines = [f"WEEKLY SUMMARY (Fri {start_fmt} \u2013 Thu {end_fmt})", ""]
 
     total_hours = 0.0
-    # Sort projects alphabetically
     for project_name in sorted(projects):
         tasks = projects[project_name]
         project_hours = sum(h for t in tasks.values() for d in t.values() for _, h in d)
@@ -72,17 +75,12 @@ def _format_summary(entries: list[dict], start: date, end: date) -> str:
             lines.append("")
             lines.append(f"  {task_name} \u2014 {task_hours:.2f}h")
 
-            # Order days Fri, Sat, Sun, Mon, Tue, Wed, Thu
-            day_order = ["Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu"]
-            for day in day_order:
+            for day in DAY_ORDER:
                 if day not in days:
                     continue
                 day_entries = days[day]
                 day_hours = sum(h for _, h in day_entries)
-                # Collapse newlines within notes
-                notes_list = [
-                    " ".join(n.split()) for n, _ in day_entries if n
-                ]
+                notes_list = [" ".join(n.split()) for n, _ in day_entries if n]
                 if len(notes_list) <= 1:
                     note = notes_list[0] if notes_list else ""
                     if note:
@@ -92,12 +90,78 @@ def _format_summary(entries: list[dict], start: date, end: date) -> str:
                 else:
                     lines.append(f"    {day} ({day_hours:.2f}h):")
                     for note in notes_list:
-                        lines.append(f"      · {note}")
+                        lines.append(f"      \u00b7 {note}")
 
         lines.append("")
 
     lines.append(f"TOTAL: {total_hours:.2f}h")
     return "\n".join(lines)
+
+
+def _format_html(projects: dict, start: date, end: date) -> str:
+    """HTML summary with a table layout."""
+    start_fmt = start.strftime("%-d %b")
+    end_fmt = end.strftime("%-d %b")
+
+    rows: list[str] = []
+    total_hours = 0.0
+
+    for project_name in sorted(projects):
+        tasks = projects[project_name]
+        project_hours = sum(h for t in tasks.values() for d in t.values() for _, h in d)
+        total_hours += project_hours
+
+        rows.append(
+            f'<tr style="background:#f0f0f0">'
+            f'<td colspan="3" style="padding:8px;font-weight:bold">'
+            f'{escape(project_name)}</td>'
+            f'<td style="padding:8px;font-weight:bold;text-align:right">'
+            f'{project_hours:.2f}h</td></tr>'
+        )
+
+        for task_name in sorted(tasks):
+            days = tasks[task_name]
+            task_hours = sum(h for d in days.values() for _, h in d)
+
+            rows.append(
+                f'<tr><td style="padding:6px 8px 6px 24px;font-weight:600" '
+                f'colspan="3">{escape(task_name)}</td>'
+                f'<td style="padding:6px 8px;text-align:right;font-weight:600">'
+                f'{task_hours:.2f}h</td></tr>'
+            )
+
+            for day in DAY_ORDER:
+                if day not in days:
+                    continue
+                day_entries = days[day]
+                day_hours = sum(h for _, h in day_entries)
+                notes_list = [" ".join(n.split()) for n, _ in day_entries if n]
+                notes_html = "<br>".join(escape(n) for n in notes_list) if notes_list else ""
+
+                rows.append(
+                    f'<tr style="color:#555">'
+                    f'<td style="padding:4px 8px 4px 40px">{day}</td>'
+                    f'<td style="padding:4px 8px">{notes_html}</td>'
+                    f'<td></td>'
+                    f'<td style="padding:4px 8px;text-align:right">{day_hours:.2f}h</td></tr>'
+                )
+
+    return (
+        f'<div style="font-family:sans-serif;max-width:700px">'
+        f'<h2 style="margin-bottom:4px">Weekly Summary</h2>'
+        f'<p style="color:#666;margin-top:0">Fri {start_fmt} \u2013 Thu {end_fmt}</p>'
+        f'<table style="width:100%;border-collapse:collapse;border:1px solid #ddd">'
+        f'<thead><tr style="background:#333;color:#fff">'
+        f'<th style="padding:8px;text-align:left">Day</th>'
+        f'<th style="padding:8px;text-align:left">Notes</th>'
+        f'<th style="padding:8px"></th>'
+        f'<th style="padding:8px;text-align:right">Hours</th>'
+        f'</tr></thead><tbody>{"".join(rows)}</tbody>'
+        f'<tfoot><tr style="background:#333;color:#fff;font-weight:bold">'
+        f'<td colspan="3" style="padding:8px">Total</td>'
+        f'<td style="padding:8px;text-align:right">{total_hours:.2f}h</td>'
+        f'</tr></tfoot></table></div>'
+    )
 
 
 def main():
@@ -109,11 +173,13 @@ def main():
         print("No time entries found for this period.")
         return
 
-    summary = _format_summary(entries, start, end)
-    print(summary)
+    projects = _group_entries(entries)
+    plain = _format_plain(projects, start, end)
+    html = _format_html(projects, start, end)
+    print(plain)
 
     subject = f"Weekly Summary (Fri {start.strftime('%-d %b')} \u2013 Thu {end.strftime('%-d %b')})"
-    send_email(subject, summary)
+    send_email(subject, plain, html=html)
     print("\nSent via email.")
 
     send_message(f"{subject} has been emailed.")
