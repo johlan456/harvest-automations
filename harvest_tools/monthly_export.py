@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from .client import get_client
-from .telegram import send_document
+from .telegram import send_document, send_message
 
 PROJECT_ID = 47325879  # HEV004 — System Admin Services
 TASK_ID = 26287739  # Tracks 4 Africa
@@ -118,7 +118,9 @@ def main():
     entries = _fetch_entries(start, end)
 
     if not entries:
-        print("No Tracks 4 Africa entries found for this month.")
+        msg = f"T4A Export — {start.strftime('%B %Y')}: No Tracks 4 Africa entries found for this month."
+        print(msg)
+        send_message(msg)
         return
 
     wb = _build_workbook(entries)
