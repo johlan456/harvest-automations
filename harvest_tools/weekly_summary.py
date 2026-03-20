@@ -139,11 +139,11 @@ def _format_html(projects: dict, start: date, end: date) -> str:
                 notes_html = "<br>".join(escape(n) for n in notes_list) if notes_list else ""
 
                 rows.append(
-                    f'<tr style="color:#555">'
-                    f'<td style="padding:4px 8px 4px 40px">{day}</td>'
-                    f'<td style="padding:4px 8px">{notes_html}</td>'
+                    f'<tr style="color:#555;border-top:1px solid #e0e0e0">'
+                    f'<td style="padding:6px 8px 6px 40px;vertical-align:top">{day}</td>'
+                    f'<td style="padding:6px 8px;vertical-align:top">{notes_html}</td>'
                     f'<td></td>'
-                    f'<td style="padding:4px 8px;text-align:right">{day_hours:.2f}h</td></tr>'
+                    f'<td style="padding:6px 8px;text-align:right;vertical-align:top">{day_hours:.2f}h</td></tr>'
                 )
 
     return (
