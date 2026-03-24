@@ -15,6 +15,7 @@ def send_email(
     body: str,
     html: str | None = None,
     recipient: str | None = None,
+    cc: str | None = None,
     attachments: list[str] | None = None,
 ) -> None:
     user = os.environ["SMTP_USER"]
@@ -26,6 +27,8 @@ def send_email(
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = recipient
+    if cc:
+        msg["Cc"] = cc
     msg.set_content(body)
     if html:
         msg.add_alternative(html, subtype="html")

@@ -176,6 +176,7 @@ def main():
     start, end = _month_range(today)
     month_label = start.strftime("%B %Y")
     client_email = os.environ["CLIENT_EMAIL_RECIPIENT"]
+    client_cc = os.environ.get("CLIENT_EMAIL_CC")
 
     print(f"Fetching HEV004 entries for {month_label}...")
 
@@ -190,6 +191,7 @@ def main():
             subject=f"HEV004 Monthly Report — {month_label}",
             body=f"Please find attached the full HEV004 time report for {month_label}.",
             recipient=client_email,
+            cc=client_cc,
             attachments=[full_filename],
         )
         print("Full report emailed to client.")
