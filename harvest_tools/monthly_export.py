@@ -8,6 +8,9 @@ from openpyxl.styles import Font
 
 from .client import get_client
 from .email import send_email
+from .healthcheck import fail as hc_fail
+from .healthcheck import start as hc_start
+from .healthcheck import success as hc_success
 from .telegram import send_message
 
 PROJECT_ID = 47325879  # HEV004 — System Admin Services
@@ -171,7 +174,7 @@ def _build_full_workbook(entries: list[dict]) -> Workbook:
     return wb
 
 
-def main():
+def _run() -> None:
     today = date.today()
     start, end = _month_range(today)
     month_label = start.strftime("%B %Y")
@@ -215,6 +218,17 @@ def main():
         attachments=[t4a_filename],
     )
     print("T4A report emailed to client.")
+
+
+def main() -> None:
+    hc_url = os.environ.get("HEALTHCHECK_URL_MONTHLY_EXPORT")
+    hc_start(hc_url)
+    try:
+        _run()
+    except Exception:
+        hc_fail(hc_url)
+        raise
+    hc_success(hc_url)
 
 
 if __name__ == "__main__":
