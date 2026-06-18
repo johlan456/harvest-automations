@@ -5,7 +5,10 @@ import os
 import sys
 import time
 
+import httpx
+
 from .client import get_client
+from .retry import with_retries
 from .telegram import send_message
 
 DEFAULT_THRESHOLD_HOURS = 1
@@ -30,7 +33,10 @@ def main():
     threshold = float(os.environ.get("RUNAWAY_THRESHOLD_HOURS", DEFAULT_THRESHOLD_HOURS))
 
     client = get_client()
-    resp = client.get("/time_entries", params={"is_running": "true"})
+    resp = with_retries(
+        lambda: client.get("/time_entries", params={"is_running": "true"}),
+        exceptions=(httpx.TransportError,),
+    )
     resp.raise_for_status()
     entries = resp.json()["time_entries"]
 

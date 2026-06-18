@@ -3,6 +3,7 @@
 import os
 from datetime import date, datetime, timedelta, timezone
 
+import httpx
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
@@ -11,6 +12,7 @@ from .email import send_email
 from .healthcheck import fail as hc_fail
 from .healthcheck import start as hc_start
 from .healthcheck import success as hc_success
+from .retry import with_retries
 from .telegram import send_message
 
 PROJECT_ID = 47325879  # HEV004 — System Admin Services
@@ -43,7 +45,10 @@ def _fetch_entries(start: date, end: date, task_id: int | None = None) -> list[d
         }
         if task_id is not None:
             params["task_id"] = task_id
-        resp = client.get("/time_entries", params=params)
+        resp = with_retries(
+            lambda: client.get("/time_entries", params=params),
+            exceptions=(httpx.TransportError,),
+        )
         resp.raise_for_status()
         data = resp.json()
         entries.extend(data["time_entries"])

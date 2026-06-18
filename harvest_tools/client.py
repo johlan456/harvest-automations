@@ -19,4 +19,5 @@ def get_client() -> httpx.Client:
             "Harvest-Account-Id": account_id,
             "User-Agent": "harvest-tools",
         },
+        timeout=httpx.Timeout(30.0),
     )

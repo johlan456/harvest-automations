@@ -4,8 +4,11 @@ from collections import defaultdict
 from datetime import date, timedelta
 from html import escape
 
+import httpx
+
 from .client import get_client
 from .email import send_email
+from .retry import with_retries
 from .telegram import send_message
 
 DAY_ABBR = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -28,9 +31,12 @@ def _fetch_entries(start: date, end: date) -> list[dict]:
     entries = []
     page = 1
     while True:
-        resp = client.get(
-            "/time_entries",
-            params={"from": str(start), "to": str(end), "per_page": 100, "page": page},
+        resp = with_retries(
+            lambda: client.get(
+                "/time_entries",
+                params={"from": str(start), "to": str(end), "per_page": 100, "page": page},
+            ),
+            exceptions=(httpx.TransportError,),
         )
         resp.raise_for_status()
         data = resp.json()

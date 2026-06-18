@@ -6,8 +6,11 @@ import smtplib
 from email.message import EmailMessage
 from pathlib import Path
 
+from .retry import with_retries
+
 SMTP_HOST = "smtp.gmail.com"
 SMTP_PORT = 587
+SMTP_TIMEOUT = 30
 
 
 def send_email(
@@ -44,7 +47,17 @@ def send_email(
             filename=path.name,
         )
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(user, password)
-        server.send_message(msg)
+    def _send() -> None:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=SMTP_TIMEOUT) as server:
+            server.starttls()
+            server.login(user, password)
+            server.send_message(msg)
+
+    with_retries(
+        _send,
+        exceptions=(
+            OSError,
+            smtplib.SMTPServerDisconnected,
+            smtplib.SMTPConnectError,
+        ),
+    )
