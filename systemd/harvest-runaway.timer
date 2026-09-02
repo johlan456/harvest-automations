@@ -1,0 +1,9 @@
+  [Unit]
+  Description=Check for runaway Harvest timers every 5 min
+
+  [Timer]
+  OnCalendar=Mon..Fri *-*-* 07..19:0/5:00
+  Persistent=true
+
+  [Install]
+  WantedBy=timers.target

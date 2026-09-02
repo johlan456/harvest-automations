@@ -1,0 +1,8 @@
+  [Unit]
+  Description=Harvest runaway timer check
+
+  [Service]
+  Type=oneshot
+  WorkingDirectory=/home/johlan/harvest-automations
+  ExecStart=/home/johlan/.local/bin/uv run --project /home/johlan/harvest-automations runaway-timer
+  EnvironmentFile=/home/johlan/harvest-automations/.env

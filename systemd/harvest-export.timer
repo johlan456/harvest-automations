@@ -1,0 +1,9 @@
+  [Unit]
+  Description= Run Monthly export for T4A at 09:00 on the 24th
+
+  [Timer]
+  OnCalendar=*-*-24 17:00:00
+  Persistent=true
+
+  [Install]
+  WantedBy=timers.target

@@ -1,0 +1,8 @@
+  [Unit]
+  Description=Harvest weekly time summary
+
+  [Service]
+  Type=oneshot
+  WorkingDirectory=/home/johlan/harvest-automations
+  ExecStart=/home/johlan/.local/bin/uv run --project /home/johlan/harvest-automations weekly-summary
+  EnvironmentFile=/home/johlan/harvest-automations/.env

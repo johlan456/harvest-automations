@@ -1,0 +1,8 @@
+  [Unit]
+  Description=Harvest Montly Export for T4A 
+
+  [Service]
+  Type=oneshot
+  WorkingDirectory=/home/johlan/harvest-automations
+  ExecStart=/home/johlan/.local/bin/uv run --project /home/johlan/harvest-automations monthly-export
+  EnvironmentFile=/home/johlan/harvest-automations/.env

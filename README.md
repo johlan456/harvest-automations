@@ -43,3 +43,18 @@ uv run monthly-export
 ## Configuration
 
 See `.env.example` for all available settings.
+
+## Deploying the timers
+
+The six systemd user units live in `systemd/`. On the host that runs them
+(tugboat), the live copies in `~/.config/systemd/user/` are symlinks into this
+repo, so a `git pull` changes what runs after a `systemctl --user daemon-reload`.
+Fresh install:
+
+```sh
+for f in systemd/*; do ln -sfn "$PWD/$f" ~/.config/systemd/user/; done
+systemctl --user daemon-reload
+systemctl --user enable --now harvest-runaway.timer harvest-weekly.timer harvest-export.timer
+```
+
+They read secrets from `.env` (gitignored) via `EnvironmentFile`.
